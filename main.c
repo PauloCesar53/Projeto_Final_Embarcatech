@@ -130,7 +130,7 @@ int main()
         //atualiza o conteudo do display 
         ssd1306_fill(&ssd, !collor); // Limpa o display
         ssd1306_rect(&ssd, 3, 3, 122, 58, collor, !collor); // Desenha um retângulo
-        /*if (stdio_usb_connected())
+        if (stdio_usb_connected())
         { // Certifica-se de que o USB está conectado
             if (scanf("%c", &c) == 1)
             {
@@ -140,7 +140,7 @@ int main()
                 
             }
             Estado_LED_Display(aux_B,aux_G,ssd);//imprime estado LEDs no Display
-        }*/
+        }
         adc_select_input(0);//canal adc JOY para eixo y
         uint16_t JOY_Y_value = adc_read(); // Lê o valor do eixo y, de 0 a 4095.
         adc_select_input(1);//canal adc JOY para eixo x
