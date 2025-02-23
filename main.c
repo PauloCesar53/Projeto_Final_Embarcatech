@@ -19,6 +19,7 @@
 #include "hardware/i2c.h"
 #include "inc/ssd1306.h"
 #include "inc/font.h"
+#include "hardware/adc.h"
 
 //definições da i2c
 #define I2C_PORT i2c1
@@ -34,6 +35,8 @@
 #define LED_PIN_B 12
 #define Botao_A 5 // gpio do botão A na BitDogLab
 #define Botao_B 6 // gpio do botão B na BitDogLab
+#define JOY_Y 26//eixo  y segundo diagrama BitDogLab
+#define JOY_X 27//eixo  x segundo diagrama BitDogLab
 
 //definição de variáveis que guardarão o estado atual de cada lED
 bool led_on_G = false;// LED verde desligado
@@ -90,6 +93,9 @@ int main()
     uint offset = pio_add_program(pio, &ws2812_program);
     
     stdio_init_all(); // Inicializa comunicação USB CDC para monitor serial
+    adc_init();//inicializando adc
+    adc_gpio_init(JOY_Y);//inicializando pino direção y 
+    adc_gpio_init(JOY_X);//inicializando pino direção x
 
     ws2812_program_init(pio, sm, offset, WS2812_PIN, 800000, IS_RGBW);
     // configuração led RGB verde
@@ -124,7 +130,7 @@ int main()
         //atualiza o conteudo do display 
         ssd1306_fill(&ssd, !collor); // Limpa o display
         ssd1306_rect(&ssd, 3, 3, 122, 58, collor, !collor); // Desenha um retângulo
-        if (stdio_usb_connected())
+        /*if (stdio_usb_connected())
         { // Certifica-se de que o USB está conectado
             if (scanf("%c", &c) == 1)
             {
@@ -134,7 +140,13 @@ int main()
                 
             }
             Estado_LED_Display(aux_B,aux_G,ssd);//imprime estado LEDs no Display
-        }
+        }*/
+        adc_select_input(0);//canal adc JOY para eixo y
+        uint16_t JOY_Y_value = adc_read(); // Lê o valor do eixo y, de 0 a 4095.
+        adc_select_input(1);//canal adc JOY para eixo x
+        uint16_t JOY_X_value = adc_read();// Lê o valor do eixo x, de 0 a 4095.
+        printf("X:%d  y:%d\n",JOY_X_value, JOY_Y_value );
+        sleep_ms(1111);
         Estado_LED_Display(aux_B,aux_G,ssd);//imprime estado LEDs no Display
         ssd1306_send_data(&ssd); // Atualiza o display
     }
