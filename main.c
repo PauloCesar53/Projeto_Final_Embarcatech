@@ -40,15 +40,14 @@
 
 //definição de variáveis que guardarão o estado atual de cada lED
 bool led_on_G = false;// LED verde desligado
-bool led_on_B = false;// LED azul desligado
+bool  aux_Bot_B= true;//aulixar para escolher o que mostrar na matriz de LEDs
 int aux_G= 1;//variável auxiliar para indicar mudança de estado do LED no display 
-int aux_B= 1;
 
 
 // Variável global para armazenar a cor (Entre 0 e 255 para intensidade)
 uint8_t led_r = 0;  // Intensidade do vermelho
 uint8_t led_g = 0; // Intensidade do verde
-uint8_t led_b = 5; // Intensidade do azul
+uint8_t led_b = 5; // Intensidade do azul (inicia mostrando umidade do solo na matriz)
 
 //variáveis globais 
 static volatile int aux = 1; // posição do numero impresso na matriz, inicialmente imprime numero 5
@@ -69,6 +68,7 @@ void gpio_irq_handler(uint gpio, uint32_t events);// protótipo função interru
 
 void Estado_LED_Display(int a , int b, ssd1306_t c);// protótipo função que imprime estado LEDs no Display
 
+void Sensor_Matiz_5X5(uint joy_x, uint joy_y);//// protótipo função que escolhe qual sensor será representado na matriz 
 void Imprime_5X5(uint rate);// protótipo função que mostra percentual do  sensor  na matriz 5x5
 void Monitoramento(uint joy_x, uint joy_y, ssd1306_t c, bool b);// protótipo função que mostra monitoramento dos sensores no Display
 void Irrigacao(uint joy_x);// Protótipo de função para acionar bomba d'água 
@@ -136,7 +136,19 @@ int main()
         adc_select_input(1);//canal adc JOY para eixo x
         uint16_t JOY_X_value = (adc_read()/4095.0)*100;// Lê o valor do eixo x, de 0 a 4095.
         printf("Umidade:%d  y:%d\n",JOY_X_value, JOY_Y_value );
-        Imprime_5X5(JOY_X_value);//imprime umidade do solo Matriz de LEDs
+
+
+        Sensor_Matiz_5X5(JOY_X_value, JOY_Y_value);
+       /* if(aux_Bot_B){//mostra percentual de umidade na matriz de LEDs 
+            led_b=5;
+            led_r=0;
+            Imprime_5X5(JOY_X_value);//imprime umidade do solo Matriz de LEDs
+        }else{//mostra percentual de temperatura na matriz de LEDs
+            led_b=0;
+            led_r=5;
+            Imprime_5X5(JOY_Y_value/4095.0*100);//imprime umidade do solo Matriz de LEDs
+        }*/
+
         Irrigacao(JOY_X_value);//Liga LED azul simulando acionamento de bomba D'água
         sleep_ms(411);
         Monitoramento(JOY_X_value, JOY_Y_value, ssd, collor);//
@@ -213,8 +225,8 @@ void gpio_irq_handler(uint gpio, uint32_t events)
     if (gpio_get(Botao_A) == 0 &&  (current_time - last_time_A) > 200000)//200ms de boucing adiconado como condição 
     { // se botão A for pressionado e aux<9 incrementa aux em 1(próximo número) 
         last_time_A = current_time; // Atualiza o tempo do último evento
-        led_on_G= !led_on_G;//altera estado LED
-        gpio_put(LED_PIN_G, led_on_G);
+        //led_on_G= !led_on_G;//altera estado LED
+        //gpio_put(LED_PIN_G, led_on_G);
         if(led_on_G){
             printf("LED verde ligado\n");//printa estado do LED serial monitor
             aux_G++;//auxiliar para imprimir estado LED display
@@ -223,18 +235,13 @@ void gpio_irq_handler(uint gpio, uint32_t events)
             aux_G--;//auxiliar para imprimir estado LED display
         }
     }
-    if (gpio_get(Botao_B) == 0  && (current_time - last_time_B) > 200000)//200ms de boucing adiconado como condição 
+    if (gpio_get(Botao_B) == 0  && (current_time - last_time_B) > 300000)//200ms de boucing adiconado como condição 
     { // se botão B for pressionado e aux>0 decrementa aux em 1(número anterior)
         last_time_B = current_time; // Atualiza o tempo do último evento
-        led_on_B= !led_on_B;//altera estado LED
-        gpio_put(LED_PIN_B, led_on_B);
-        if(led_on_B){
-            printf("LED azul ligado\n");//printa estado do LED serial monitor
-            aux_B++;
-        }else{
-            printf("LED azul desligado\n");//printa estado do LED serial monitor
-            aux_B--;
-        }
+        //led_on_B= !led_on_B;//altera estado LED
+        //gpio_put(LED_PIN_B, led_on_B);
+        aux_Bot_B=!aux_Bot_B;
+       
     }
 }
 //função que coloca percentual do sensor na matriz de LEDs
@@ -300,4 +307,16 @@ void Irrigacao(uint joy_x){
     }else if(joy_x>=60){//desliga bomba d'agua para irrigação se umidade chegar a 60%
         gpio_put(LED_PIN_B, 0);
     }
+}
+//função que escolhe qual sensor será representado na matriz de LEDs 
+void Sensor_Matiz_5X5(uint joy_x, uint joy_y){
+    if(aux_Bot_B){//mostra percentual de umidade na matriz de LEDs 
+        led_b=5;
+        led_r=0;
+        Imprime_5X5(joy_x);//imprime umidade do solo Matriz de LEDs
+    }else{//mostra percentual de temperatura na matriz de LEDs
+        led_b=0;
+        led_r=5;
+        Imprime_5X5(joy_y/4095.0*100);//imprime umidade do solo Matriz de LEDs
+        }
 }
