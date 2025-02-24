@@ -32,7 +32,7 @@ file(MAKE_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/generated)
 pico_generate_pio_header(Projeto ${CMAKE_CURRENT_LIST_DIR}/ws2812.pio OUTPUT_DIR ${CMAKE_CURRENT_LIST_DIR}/generated)
 target_sources(Projeto PRIVATE main.c)
 
-target_link_libraries(Projeto PRIVATE pico_stdlib hardware_pio hardware_i2c hardware_adc)
+target_link_libraries(Projeto PRIVATE pico_stdlib hardware_pio hardware_i2c hardware_adc hardware_pwm)
 pico_add_extra_outputs(Projeto) 
 
 pico_enable_stdio_usb(Projeto 1)

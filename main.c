@@ -1,20 +1,10 @@
-/*
- *                    Funcionamento do programa 
- *O programa mostra números de 0 a 9 na matriz de lEDS 5x5, a depender da entrada de um desses 
- números no serial monitor,ao apertar o botão A o LED verde muda de estado, com a informação 
- sendo printada no serial monitor e no display da BitDogLab, o Botão B tem comportamento 
- similar ao botão A mas para funcionamento do LED Azul. Os caracteres inseridos via serial monitor 
- aparecem no Display 
- *                    Tratamento de deboucing com interrupção 
- * A ativação dos botões A e B são feitas através de uma rotina de interrupção, sendo
- * implementada condição para tratar o efeito boucing na rotina.
-*/
 
 #include <stdio.h>
 #include <stdlib.h>
 #include "pico/stdlib.h"
 #include "hardware/pio.h"
 #include "hardware/clocks.h"
+#include "hardware/pwm.h"//biblioteca para funções  pwm
 #include "ws2812.pio.h"
 #include "hardware/i2c.h"
 #include "inc/ssd1306.h"
@@ -37,7 +27,7 @@
 #define Botao_B 6 // gpio do botão B na BitDogLab
 #define JOY_Y 26//eixo  y segundo diagrama BitDogLab (Sensor de Temperatura Simulado)
 #define JOY_X 27//eixo  x segundo diagrama BitDogLab (Sensor de umidade do Solo resistivo Simulado)
-
+#define buzzer 21// pino do Buzzer na BitDogLab
 //definição de variáveis que guardarão o estado atual de cada lED
 bool led_on_G = false;// LED verde desligado
 bool  aux_Bot_B= true;//aulixar para escolher o que mostrar na matriz de LEDs
@@ -72,6 +62,8 @@ void Sensor_Matiz_5X5(uint joy_x, uint joy_y);//// protótipo função que escol
 void Imprime_5X5(uint rate);// protótipo função que mostra percentual do  sensor  na matriz 5x5
 void Monitoramento(uint joy_x, uint joy_y, ssd1306_t c, bool b);// protótipo função que mostra monitoramento dos sensores no Display
 void Irrigacao(uint joy_x);// Protótipo de função para acionar bomba d'água 
+void pwm_init_gpio(uint gpio, uint wrap);//protótipo de função para configurar pwm
+void alerta_umidade(uint joy_x);//protótipo de função gerar alerta sonoro de umidade 
 
 int main()
 {
@@ -100,6 +92,10 @@ int main()
     adc_init();//inicializando adc
     adc_gpio_init(JOY_Y);//inicializando pino direção y 
     adc_gpio_init(JOY_X);//inicializando pino direção x
+
+    //configurando PWM
+    uint pwm_wrap = 8000;// definindo valor de wrap referente a 12 bits do ADC
+    pwm_init_gpio(buzzer, pwm_wrap); 
 
     ws2812_program_init(pio, sm, offset, WS2812_PIN, 800000, IS_RGBW);
     // configuração led RGB verde
@@ -139,6 +135,8 @@ int main()
 
 
         Sensor_Matiz_5X5(JOY_X_value, JOY_Y_value);
+
+        alerta_umidade(JOY_X_value);
        /* if(aux_Bot_B){//mostra percentual de umidade na matriz de LEDs 
             led_b=5;
             led_r=0;
@@ -314,4 +312,20 @@ void Sensor_Matiz_5X5(uint joy_x, uint joy_y){
         led_r=5;
         Imprime_5X5(2*joy_y);//imprime umidade do solo Matriz de LEDs
         }
+}
+void pwm_init_gpio(uint gpio, uint wrap) {//função para configuração do PWM
+    gpio_set_function(gpio, GPIO_FUNC_PWM);
+    uint slice_num = pwm_gpio_to_slice_num(gpio);
+    pwm_set_wrap(slice_num, wrap);
+    pwm_set_clkdiv(slice_num, 125.0);//divisor de clock 
+    pwm_set_enabled(slice_num, true);  
+}
+//protótipo de função gerar alerta sonoro de umidade 
+void alerta_umidade(uint joy_x){
+    if(joy_x<19){
+        pwm_set_gpio_level(buzzer, 400);//10% de Duty cycle
+    }else{
+        pwm_set_gpio_level(buzzer, 0);//10% de Duty cycle
+    }
+
 }
