@@ -35,7 +35,7 @@
 #define LED_PIN_B 12//LED que irá simular uma bonba de agua para irrigação 
 #define Botao_A 5 // gpio do botão A na BitDogLab
 #define Botao_B 6 // gpio do botão B na BitDogLab
-#define JOY_Y 26//eixo  y segundo diagrama BitDogLab 
+#define JOY_Y 26//eixo  y segundo diagrama BitDogLab (Sensor de Temperatura Simulado)
 #define JOY_X 27//eixo  x segundo diagrama BitDogLab (Sensor de umidade do Solo resistivo Simulado)
 
 //definição de variáveis que guardarão o estado atual de cada lED
@@ -132,9 +132,9 @@ int main()
     {
         
         adc_select_input(0);//canal adc JOY para eixo y
-        uint16_t JOY_Y_value = adc_read(); // Lê o valor do eixo y, de 0 a 4095.
+        uint16_t JOY_Y_value = (adc_read()/4095.0)*50; // Lê o valor do eixo y, de 0 a 4095 e calcula temperatura (0 a 50°C)
         adc_select_input(1);//canal adc JOY para eixo x
-        uint16_t JOY_X_value = (adc_read()/4095.0)*100;// Lê o valor do eixo x, de 0 a 4095.
+        uint16_t JOY_X_value = (adc_read()/4095.0)*100;// Lê o valor do eixo x, de 0 a 4095 e  calcula % umidade
         printf("Umidade:%d  y:%d\n",JOY_X_value, JOY_Y_value );
 
 
@@ -165,7 +165,7 @@ bool led_buffer[NUM_PIXELS] = { //Buffer para armazenar quais LEDs estão ligado
     0, 0, 0, 0, 0,
     0, 0, 0, 0, 0};
 
-bool buffer_Numeros[Frames][NUM_PIXELS] =//Frames que formam nível de umidade no solo na matriz
+bool buffer_Numeros[Frames][NUM_PIXELS] =//Frames que formam nível do sensor mostrado na matriz
     {
       //{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24} referência para posição na BitDogLab matriz 5x5
         {0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // para o número zero (até 20% de umidade)
@@ -173,11 +173,6 @@ bool buffer_Numeros[Frames][NUM_PIXELS] =//Frames que formam nível de umidade n
         {0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // para o número 2 (entre 40% e 60% de umidade)
         {0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // para o número 3 (entre 60% e 80% de umidade)
         {0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // para o número 4 (acima de 80% de umidade)
-        {0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0}, // para o número 5
-        {0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0}, // para o número 6
-        {0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0}, // para o número 7
-        {0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0}, // para o número 8
-        {0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0}  // para o número 9
 };
 
 // função que atualiza o buffer de acordo o número de 0 a 9
@@ -297,7 +292,7 @@ void Monitoramento(uint joy_x, uint joy_y, ssd1306_t c, bool b){
         ssd1306_line(&c, 75, 15, 75, 60, b);                       // Desenha uma linha vertical
         ssd1306_draw_string(&c, str_x, 21, 35);                       // Desenha uma string
         ssd1306_draw_string(&c, "z", 37, 35);//z equivale a % na font.h
-        ssd1306_draw_string(&c, str_y, 81, 35);                      // Desenha uma string
+        ssd1306_draw_string(&c, str_y, 91, 35);                      // Desenha uma string
         ssd1306_send_data(&c);                                       // Atualiza o display
 }
 // Função para simular acionamento de bomba d'água com LED azul
@@ -317,6 +312,6 @@ void Sensor_Matiz_5X5(uint joy_x, uint joy_y){
     }else{//mostra percentual de temperatura na matriz de LEDs
         led_b=0;
         led_r=5;
-        Imprime_5X5(joy_y/4095.0*100);//imprime umidade do solo Matriz de LEDs
+        Imprime_5X5(2*joy_y);//imprime umidade do solo Matriz de LEDs
         }
 }
