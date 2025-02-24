@@ -35,8 +35,8 @@
 #define LED_PIN_B 12
 #define Botao_A 5 // gpio do botão A na BitDogLab
 #define Botao_B 6 // gpio do botão B na BitDogLab
-#define JOY_Y 26//eixo  y segundo diagrama BitDogLab
-#define JOY_X 27//eixo  x segundo diagrama BitDogLab
+#define JOY_Y 26//eixo  y segundo diagrama BitDogLab 
+#define JOY_X 27//eixo  x segundo diagrama BitDogLab (Sensor de umidade do Solo resistivo Simulado)
 
 //definição de variáveis que guardarão o estado atual de cada lED
 bool led_on_G = false;// LED verde desligado
@@ -48,7 +48,7 @@ int aux_B= 1;
 // Variável global para armazenar a cor (Entre 0 e 255 para intensidade)
 uint8_t led_r = 0;  // Intensidade do vermelho
 uint8_t led_g = 0; // Intensidade do verde
-uint8_t led_b = 15; // Intensidade do azul
+uint8_t led_b = 9; // Intensidade do azul
 
 //variáveis globais 
 static volatile int aux = 1; // posição do numero impresso na matriz, inicialmente imprime numero 5
@@ -66,7 +66,7 @@ static inline uint32_t urgb_u32(uint8_t r, uint8_t g, uint8_t b);
 void set_one_led(uint8_t r, uint8_t g, uint8_t b);//liga os LEDs escolhidos 
 
 void gpio_irq_handler(uint gpio, uint32_t events);// protótipo função interrupção para os botões A e B com condição para deboucing
-void Imprime_5X5(char car);// protótipo função que colocar números de zero a 9 na 5x5
+void Imprime_5X5(uint rate);// protótipo função que colocar números de zero a 9 na 5x5
 void Estado_LED_Display(int a , int b, ssd1306_t c);// protótipo função que imprime estado LEDs no Display
 
 int main()
@@ -128,9 +128,9 @@ int main()
     {
         collor = !collor;
         //atualiza o conteudo do display 
-        ssd1306_fill(&ssd, !collor); // Limpa o display
-        ssd1306_rect(&ssd, 3, 3, 122, 58, collor, !collor); // Desenha um retângulo
-        if (stdio_usb_connected())
+        //ssd1306_fill(&ssd, !collor); // Limpa o display
+        //ssd1306_rect(&ssd, 3, 3, 122, 58, collor, !collor); // Desenha um retângulo
+        /*if (stdio_usb_connected())
         { // Certifica-se de que o USB está conectado
             if (scanf("%c", &c) == 1)
             {
@@ -140,15 +140,36 @@ int main()
                 
             }
             Estado_LED_Display(aux_B,aux_G,ssd);//imprime estado LEDs no Display
-        }
+        }*/
         adc_select_input(0);//canal adc JOY para eixo y
         uint16_t JOY_Y_value = adc_read(); // Lê o valor do eixo y, de 0 a 4095.
         adc_select_input(1);//canal adc JOY para eixo x
-        uint16_t JOY_X_value = adc_read();// Lê o valor do eixo x, de 0 a 4095.
-        printf("X:%d  y:%d\n",JOY_X_value, JOY_Y_value );
-        sleep_ms(1111);
-        Estado_LED_Display(aux_B,aux_G,ssd);//imprime estado LEDs no Display
-        ssd1306_send_data(&ssd); // Atualiza o display
+        uint16_t JOY_X_value = (adc_read()/4095.0)*100;// Lê o valor do eixo x, de 0 a 4095.
+        printf("Umidade:%d  y:%d\n",JOY_X_value, JOY_Y_value );
+        Imprime_5X5(JOY_X_value);
+        sleep_ms(411);
+        char str_x[5];  // Buffer para armazenar a string
+        char str_y[5];  // Buffer para armazenar a string
+        sprintf(str_x, "%d", JOY_X_value);  // Converte o inteiro em string
+        sprintf(str_y, "%d", JOY_Y_value);  // Converte o inteiro em string
+    
+
+        ssd1306_fill(&ssd, !cor);                                      // Limpa o display
+        ssd1306_rect(&ssd, 3, 3, 122, 60, cor, !cor);                  // Desenha um retângulo
+        ssd1306_line(&ssd, 3, 25, 123, 25, cor);                       // Desenha uma linha
+        ssd1306_line(&ssd, 3, 37, 123, 37, cor);                       // Desenha uma linha
+        ssd1306_draw_string(&ssd, "Monitoramento", 10, 28);           // Desenha uma string
+        ssd1306_draw_string(&ssd, "Umidade    Temperatura    PB", 20, 41);             // Desenha uma string
+        ssd1306_line(&ssd, 44, 37, 44, 60, cor);                       // Desenha uma linha vertical
+        ssd1306_draw_string(&ssd, str_x, 8, 52);                       // Desenha uma string
+        ssd1306_line(&ssd, 84, 37, 84, 60, cor);                       // Desenha uma linha vertical
+        ssd1306_draw_string(&ssd, str_y, 49, 52);                      // Desenha uma string
+        //ssd1306_rect(&ssd, 52, 102, 8, 8, cor, !gpio_get(Botao_A));    // Desenha um retângulo
+        ssd1306_rect(&ssd, 52, 114, 8, 8, cor, !cor);                  // Desenha um retângulo
+        ssd1306_send_data(&ssd);                                       // Atualiza o display
+        //Estado_LED_Display(aux_B,aux_G,ssd);//imprime estado LEDs no Display
+        //ssd1306_send_data(&ssd); // Atualiza o display
+        Imprime_5X5(JOY_X_value);//imprime umidade do solo na matriz 
     }
 
     return 0;
@@ -161,14 +182,14 @@ bool led_buffer[NUM_PIXELS] = { //Buffer para armazenar quais LEDs estão ligado
     0, 0, 0, 0, 0,
     0, 0, 0, 0, 0};
 
-bool buffer_Numeros[Frames][NUM_PIXELS] =//Frames que formam os números de 0 a 9
+bool buffer_Numeros[Frames][NUM_PIXELS] =//Frames que formam nível de umidade no solo na matriz
     {
-        //{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24} referência para posição na BitDogLab matriz 5x5
-        {0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0}, // para o número zero
-        {0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0}, // para o número 1
-        {0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0}, // para o número 2
-        {0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0}, // para o número 3
-        {0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0}, // para o número 4
+      //{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24} referência para posição na BitDogLab matriz 5x5
+        {0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // para o número zero (até 20% de umidade)
+        {0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // para o número 1 (entre 20% e 40% de umidade)
+        {0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // para o número 2 (entre 40% e 60% de umidade)
+        {0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // para o número 3 (entre 60% e 80% de umidade)
+        {0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // para o número 4 (acima de 80% de umidade)
         {0, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0}, // para o número 5
         {0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0}, // para o número 6
         {0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 0}, // para o número 7
@@ -245,42 +266,24 @@ void gpio_irq_handler(uint gpio, uint32_t events)
         }
     }
 }
-//função que colocar números de zero a 9 na 5x5
-void Imprime_5X5(char car){
-    if(car == '0'){
-        atualiza_buffer(led_buffer, buffer_Numeros, 0); // atualiza buffer para numero 1
-        set_one_led(led_r, led_g, led_b);//forma número 1 namatriz 
-    }else if(car == '1'){
-        atualiza_buffer(led_buffer, buffer_Numeros, 1); // atualiza buffer para numero 1
-        set_one_led(led_r, led_g, led_b);//forma número 1 namatriz 
-    }else if(car == '2'){
-        atualiza_buffer(led_buffer, buffer_Numeros, 2); // atualiza buffer para numero 1
-        set_one_led(led_r, led_g, led_b);//forma número 1 namatriz 
-    }else if(car == '3'){
-        atualiza_buffer(led_buffer, buffer_Numeros, 3); // atualiza buffer para numero 1
-        set_one_led(led_r, led_g, led_b);//forma número 1 namatriz 
-    }else if(car == '4'){
-        atualiza_buffer(led_buffer, buffer_Numeros, 4); // atualiza buffer para numero 1
-        set_one_led(led_r, led_g, led_b);//forma número 1 namatriz 
-    }else if(car == '5'){
-        atualiza_buffer(led_buffer, buffer_Numeros, 5); // atualiza buffer para numero 1
-        set_one_led(led_r, led_g, led_b);//forma número 1 namatriz 
-    }else if(car == '6'){
-        atualiza_buffer(led_buffer, buffer_Numeros, 6); // atualiza buffer para numero 1
-        set_one_led(led_r, led_g, led_b);//forma número 1 namatriz 
-    }else if(car == '7'){
-        atualiza_buffer(led_buffer, buffer_Numeros, 7); // atualiza buffer para numero 1
-        set_one_led(led_r, led_g, led_b);//forma número 1 namatriz 
-    }else if(car == '8'){
-        atualiza_buffer(led_buffer, buffer_Numeros, 8); // atualiza buffer para numero 1
-        set_one_led(led_r, led_g, led_b);//forma número 1 namatriz 
-    }else if(car == '9'){
-        atualiza_buffer(led_buffer, buffer_Numeros, 9); // atualiza buffer para numero 1
-        set_one_led(led_r, led_g, led_b);//forma número 1 namatriz 
-    }else{
-
+//função que coloca percentual de umidade do solo na matriz
+void Imprime_5X5(uint rate){//
+    if(rate <=20){
+        atualiza_buffer(led_buffer, buffer_Numeros, 0); 
+        set_one_led(led_r, led_g, led_b);
+    }else if(rate >20 && rate<=40){
+        atualiza_buffer(led_buffer, buffer_Numeros, 1); 
+        set_one_led(led_r, led_g, led_b);
+    }else if(rate >40 && rate<=60){
+        atualiza_buffer(led_buffer, buffer_Numeros, 2); 
+        set_one_led(led_r, led_g, led_b); 
+    }else if(rate >60 && rate<80){
+        atualiza_buffer(led_buffer, buffer_Numeros, 3); 
+        set_one_led(led_r, led_g, led_b); 
+    }else if(rate >=80){
+        atualiza_buffer(led_buffer, buffer_Numeros, 4); 
+        set_one_led(led_r, led_g, led_b);
     }
-
 }
 // função que imprime estado LEDs no Display
 void Estado_LED_Display(int a , int b, ssd1306_t c){
