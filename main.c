@@ -32,7 +32,7 @@
 #define WS2812_PIN 7
 #define Frames 10
 #define LED_PIN_G 11
-#define LED_PIN_B 12
+#define LED_PIN_B 12//LED que irá simular uma bonba de agua para irrigação 
 #define Botao_A 5 // gpio do botão A na BitDogLab
 #define Botao_B 6 // gpio do botão B na BitDogLab
 #define JOY_Y 26//eixo  y segundo diagrama BitDogLab 
@@ -48,7 +48,7 @@ int aux_B= 1;
 // Variável global para armazenar a cor (Entre 0 e 255 para intensidade)
 uint8_t led_r = 0;  // Intensidade do vermelho
 uint8_t led_g = 0; // Intensidade do verde
-uint8_t led_b = 9; // Intensidade do azul
+uint8_t led_b = 5; // Intensidade do azul
 
 //variáveis globais 
 static volatile int aux = 1; // posição do numero impresso na matriz, inicialmente imprime numero 5
@@ -66,8 +66,12 @@ static inline uint32_t urgb_u32(uint8_t r, uint8_t g, uint8_t b);
 void set_one_led(uint8_t r, uint8_t g, uint8_t b);//liga os LEDs escolhidos 
 
 void gpio_irq_handler(uint gpio, uint32_t events);// protótipo função interrupção para os botões A e B com condição para deboucing
-void Imprime_5X5(uint rate);// protótipo função que colocar números de zero a 9 na 5x5
+
 void Estado_LED_Display(int a , int b, ssd1306_t c);// protótipo função que imprime estado LEDs no Display
+
+void Imprime_5X5(uint rate);// protótipo função que mostra percentual do  sensor  na matriz 5x5
+void Monitoramento(uint joy_x, uint joy_y, ssd1306_t c, bool b);// protótipo função que mostra monitoramento dos sensores no Display
+void Irrigacao(uint joy_x);// Protótipo de função para acionar bomba d'água 
 
 int main()
 {
@@ -126,50 +130,17 @@ int main()
     bool collor = true;
     while (1)
     {
-        collor = !collor;
-        //atualiza o conteudo do display 
-        //ssd1306_fill(&ssd, !collor); // Limpa o display
-        //ssd1306_rect(&ssd, 3, 3, 122, 58, collor, !collor); // Desenha um retângulo
-        /*if (stdio_usb_connected())
-        { // Certifica-se de que o USB está conectado
-            if (scanf("%c", &c) == 1)
-            {
-                Estado_LED_Display(aux_B,aux_G,ssd);//imprime estado LEDs no Display
-                ssd1306_draw_char(&ssd, c, 50, 30);//desenha o caracter digitado via serial monitor
-                Imprime_5X5(c);//Numero na matriz 5x5
-                
-            }
-            Estado_LED_Display(aux_B,aux_G,ssd);//imprime estado LEDs no Display
-        }*/
+        
         adc_select_input(0);//canal adc JOY para eixo y
         uint16_t JOY_Y_value = adc_read(); // Lê o valor do eixo y, de 0 a 4095.
         adc_select_input(1);//canal adc JOY para eixo x
         uint16_t JOY_X_value = (adc_read()/4095.0)*100;// Lê o valor do eixo x, de 0 a 4095.
         printf("Umidade:%d  y:%d\n",JOY_X_value, JOY_Y_value );
-        Imprime_5X5(JOY_X_value);
+        Imprime_5X5(JOY_X_value);//imprime umidade do solo Matriz de LEDs
+        Irrigacao(JOY_X_value);//Liga LED azul simulando acionamento de bomba D'água
         sleep_ms(411);
-        char str_x[5];  // Buffer para armazenar a string
-        char str_y[5];  // Buffer para armazenar a string
-        sprintf(str_x, "%d", JOY_X_value);  // Converte o inteiro em string
-        sprintf(str_y, "%d", JOY_Y_value);  // Converte o inteiro em string
-    
+        Monitoramento(JOY_X_value, JOY_Y_value, ssd, collor);//
 
-        ssd1306_fill(&ssd, !cor);                                      // Limpa o display
-        ssd1306_rect(&ssd, 3, 3, 122, 60, cor, !cor);                  // Desenha um retângulo
-        ssd1306_line(&ssd, 3, 25, 123, 25, cor);                       // Desenha uma linha
-        ssd1306_line(&ssd, 3, 37, 123, 37, cor);                       // Desenha uma linha
-        ssd1306_draw_string(&ssd, "Monitoramento", 10, 28);           // Desenha uma string
-        ssd1306_draw_string(&ssd, "Umidade    Temperatura    PB", 20, 41);             // Desenha uma string
-        ssd1306_line(&ssd, 44, 37, 44, 60, cor);                       // Desenha uma linha vertical
-        ssd1306_draw_string(&ssd, str_x, 8, 52);                       // Desenha uma string
-        ssd1306_line(&ssd, 84, 37, 84, 60, cor);                       // Desenha uma linha vertical
-        ssd1306_draw_string(&ssd, str_y, 49, 52);                      // Desenha uma string
-        //ssd1306_rect(&ssd, 52, 102, 8, 8, cor, !gpio_get(Botao_A));    // Desenha um retângulo
-        ssd1306_rect(&ssd, 52, 114, 8, 8, cor, !cor);                  // Desenha um retângulo
-        ssd1306_send_data(&ssd);                                       // Atualiza o display
-        //Estado_LED_Display(aux_B,aux_G,ssd);//imprime estado LEDs no Display
-        //ssd1306_send_data(&ssd); // Atualiza o display
-        Imprime_5X5(JOY_X_value);//imprime umidade do solo na matriz 
     }
 
     return 0;
@@ -266,7 +237,7 @@ void gpio_irq_handler(uint gpio, uint32_t events)
         }
     }
 }
-//função que coloca percentual de umidade do solo na matriz
+//função que coloca percentual do sensor na matriz de LEDs
 void Imprime_5X5(uint rate){//
     if(rate <=20){
         atualiza_buffer(led_buffer, buffer_Numeros, 0); 
@@ -302,5 +273,31 @@ void Estado_LED_Display(int a , int b, ssd1306_t c){
     else
     {
         ssd1306_draw_string(&c, "LED verde on  ", 8, 20); // Desenha uma string;
+    }
+}
+//Função que mostra monitoramente de temperatura e umidade no display
+void Monitoramento(uint joy_x, uint joy_y, ssd1306_t c, bool b){
+    char str_x[5];  // Buffer para armazenar a string
+        char str_y[5];  // Buffer para armazenar a string
+        sprintf(str_x, "%d", joy_x);  // Converte o inteiro em string
+        sprintf(str_y, "%d", joy_y);  // Converte o inteiro em string
+        ssd1306_fill(&c, !b);                                      // Limpa o display
+        ssd1306_rect(&c, 3, 3, 122, 60, b, !b);                  // Desenha um retângulo
+        ssd1306_line(&c, 3, 14, 123, 14, b);                   // Desenha uma linha
+        ssd1306_draw_string(&c, "MONITORAMENTO", 12, 5);           // Desenha uma string
+        ssd1306_draw_string(&c, "UMIDADE", 8, 16);     
+        ssd1306_draw_string(&c, " T yC", 77, 16);         // Desenha uma string (y equivale a ° na font.h)
+        ssd1306_line(&c, 75, 15, 75, 60, b);                       // Desenha uma linha vertical
+        ssd1306_draw_string(&c, str_x, 21, 35);                       // Desenha uma string
+        ssd1306_draw_string(&c, "z", 37, 35);//z equivale a % na font.h
+        ssd1306_draw_string(&c, str_y, 81, 35);                      // Desenha uma string
+        ssd1306_send_data(&c);                                       // Atualiza o display
+}
+// Função para simular acionamento de bomba d'água com LED azul
+void Irrigacao(uint joy_x){
+    if(joy_x<=20){//aciona bomda d'agua para irrigação se umidade chegar a 20%
+        gpio_put(LED_PIN_B, 1);
+    }else if(joy_x>=60){//desliga bomba d'agua para irrigação se umidade chegar a 60%
+        gpio_put(LED_PIN_B, 0);
     }
 }
