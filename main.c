@@ -45,7 +45,7 @@ static volatile uint32_t last_time_A = 0; // Armazena o tempo do último evento 
 static volatile uint32_t last_time_B = 0; // Armazena o tempo do último evento para Bot B(em microssegundos)
 static volatile uint32_t last_time_JOY = 0; // Armazena o tempo do último evento para Bot JOY(em microssegundos)
 static volatile uint32_t last_time_T = 0;// Armazena o tempo do último evento para Bot Calular intervalor para medir T
-uint His_T[30]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};//veotor com histórico de Temperaturas 
+int His_T[30]={-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};//veotor com histórico de Temperaturas 
 
 bool led_buffer[NUM_PIXELS];// Variável (protótipo)
 bool buffer_Numeros[Frames][NUM_PIXELS];// // Variável (protótipo) 
@@ -314,12 +314,6 @@ void history_T(uint16_t joy_y){
         }
         His_T[29]=joy_y;
     }
-    for(int i=0; i<30; i++){
-        printf("T%d=%d\t ",i+1, His_T[i]);
-        if((i+1)%5==0){
-            printf("\n");
-        }
-    }
 }
 //Função para imprimir histórico  de Temperaturas no Display 
 void His_T_Dislay(ssd1306_t c, bool b){
@@ -337,7 +331,7 @@ void His_T_Dislay(ssd1306_t c, bool b){
         ssd1306_draw_string(&c, "T5      T10", 4, 52); // Desenha uma string
         for (int i = 0; i < 10; i++)
         {
-            if(His_T[i]==0){//para iprimir espaço vazio onde ainda não tem dados( onde Temperatura é Zero)
+            if(His_T[i]==-1){//para iprimir espaço vazio onde ainda não tem dados( onde Temperatura é -1 iniialmente)
                 sprintf(str_x, " ");
             }else{
                 sprintf(str_x, "%d", His_T[i]);
@@ -359,7 +353,7 @@ void His_T_Dislay(ssd1306_t c, bool b){
         ssd1306_draw_string(&c, "T15     T20", 4, 52); // Desenha uma string
         for (int i = 10; i < 20; i++)
         {
-            if(His_T[i]==0){
+            if(His_T[i]==-1){
                 sprintf(str_x, " ");
             }else{
                 sprintf(str_x, "%d", His_T[i]);
@@ -381,7 +375,7 @@ void His_T_Dislay(ssd1306_t c, bool b){
         ssd1306_draw_string(&c, "T25     T30", 4, 52); // Desenha uma string
         for (int i = 20; i < 30; i++)
         {
-            if(His_T[i]==0){
+            if(His_T[i]==-1){
                 sprintf(str_x, " ");
             }else{
                 sprintf(str_x, "%d", His_T[i]);
