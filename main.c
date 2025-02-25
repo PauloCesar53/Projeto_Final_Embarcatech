@@ -63,7 +63,7 @@ void Monitoramento(uint joy_x, uint joy_y, ssd1306_t c, bool b);// protótipo fu
 void Irrigacao(uint joy_x);// Protótipo de função para acionar bomba d'água 
 void pwm_init_gpio(uint gpio, uint wrap);//protótipo de função para configurar pwm
 void alerta_umidade(uint joy_x);//protótipo de função gerar alerta sonoro de umidade 
-void history_T(uint16_t joy_y);// protótipo de função que irá calcular o histórico de temperaturas 
+void history_T(uint16_t joy_y);// protótipo de função armazena maior Temperatura do intervalo no Histórico 
 void His_T_Dislay(ssd1306_t c, bool b);// protótipo de função para mostrar histórico de Temperatura no Display
 
 int main()
@@ -300,9 +300,9 @@ void alerta_umidade(uint joy_x){
         pwm_set_gpio_level(buzzer, 0);//10% de Duty cycle
     }
 }
-//função que irá calcular o histórico de temperaturas  e armazenar em vetor com 30 intervalos 
+//função que irá calcular o histórico de temperaturas  e armazenar em vetor com 30 intervalos(registra a maior temperatura do intervalo)
 void history_T(uint16_t joy_y){   
-    if(joy_y>His_T[29]){
+    if(joy_y>His_T[29]){//para pegar maior temperatura do intervalo 
         His_T[29]=joy_y;
     }
     uint64_t current_time_T = (to_us_since_boot(get_absolute_time()))/1000000;//obtem tempo em segundos 
